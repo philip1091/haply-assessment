@@ -14,7 +14,11 @@ function Scene({shapes}:SceneProps) {
 
             {shapes.map((shape) => (
                 <mesh key={shape.id} position={shape.position}>
-                    <boxGeometry args={[1, 1, 1]} />
+                    {shape.type === "cube" ? (
+                        <boxGeometry args={[1, 1, 1]} />
+                    ) : (
+                        <sphereGeometry args={[0.6, 32, 32]} />
+                    )}
 
                     <meshStandardMaterial color={shape.color} />
                 </mesh>

@@ -13,6 +13,10 @@ function Toolbar({ onAddShape }: ToolbarProps) {
                 <button type="button" onClick={() => onAddShape("cube")}>
                     Add Cube
                 </button>
+
+                <button type="button" onClick={() => onAddShape("sphere")}>
+                    Add Sphere
+                </button>
             </div>
         </header>
     );
