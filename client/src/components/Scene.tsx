@@ -1,16 +1,24 @@
 import { OrbitControls, Grid } from "@react-three/drei";
+import type { Shape } from "../types/shape";
 
-function Scene() {
+type SceneProps = {
+    shapes: Shape[];
+};
+
+function Scene({shapes}:SceneProps) {
     return (
         <>
             <ambientLight intensity={1.2} />
 
             <directionalLight position={[5, 8, 5]} intensity={2} />
 
-            <mesh position={[0, 0.5, 0]}>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color="orange" />
-            </mesh>
+            {shapes.map((shape) => (
+                <mesh key={shape.id} position={shape.position}>
+                    <boxGeometry args={[1, 1, 1]} />
+
+                    <meshStandardMaterial color={shape.color} />
+                </mesh>
+            ))}
 
             <Grid
                 args={[20, 20]}
