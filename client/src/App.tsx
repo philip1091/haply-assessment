@@ -4,6 +4,7 @@ import './App.css'
 import Scene from "./components/Scene.tsx";
 import Toolbar from "./components/Toolbar.tsx";
 import type { Shape, ShapeType } from "./types/shape";
+import { getRandomColor } from "./utils/randomColors";
 
 function App() {
     const [shapes, setShapes] = useState<Shape[]>([]);
@@ -17,7 +18,7 @@ function App() {
                 0.5,
                 Math.random() * 4 - 2,
             ],
-            color: type === "cube" ? "orange" : "royalblue",
+            color: getRandomColor(),
         };
 
         setShapes((currentShapes) => [...currentShapes, newShape]);
