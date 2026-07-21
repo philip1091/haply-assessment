@@ -1,5 +1,6 @@
 import { OrbitControls, Grid } from "@react-three/drei";
 import type { Shape } from "../types/shape";
+import ShapeMesh from "./ShapeMesh";
 
 type SceneProps = {
     shapes: Shape[];
@@ -13,15 +14,7 @@ function Scene({shapes}:SceneProps) {
             <directionalLight position={[5, 8, 5]} intensity={2} />
 
             {shapes.map((shape) => (
-                <mesh key={shape.id} position={shape.position}>
-                    {shape.type === "cube" ? (
-                        <boxGeometry args={[1, 1, 1]} />
-                    ) : (
-                        <sphereGeometry args={[0.6, 32, 32]} />
-                    )}
-
-                    <meshStandardMaterial color={shape.color} />
-                </mesh>
+                <ShapeMesh key={shape.id} shape={shape} />
             ))}
 
             <Grid
