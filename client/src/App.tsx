@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {useCallback, useState} from "react";
 import { Canvas } from "@react-three/fiber";
 import './App.css'
 import Scene from "./components/Scene.tsx";
@@ -27,25 +27,37 @@ function App() {
         setSelectedShapeId(newShape.id);
     }
 
-    function moveShape(
-        shapeId: string,
-        position: Vector3Tuple
-    ) {
-        setShapes((currentShapes) =>
-            currentShapes.map((shape) =>
-                shape.id === shapeId
-                    ? { ...shape, position }
-                    : shape
-            )
-        );
-    }
+    const moveShape = useCallback(
+        (
+            shapeId: string,
+            position: Vector3Tuple
+        ) => {
+            setShapes((currentShapes) =>
+                currentShapes.map((shape) =>
+                    shape.id === shapeId
+                        ? {
+                            ...shape,
+                            position,
+                        }
+                        : shape
+                )
+            );
+        },
+        []
+    );
 
 
   return (
     <main className="app">
       <Toolbar onAddShape={addShape}  />
       <section className="canvas-container">
-        <Canvas camera={{ position: [5, 5, 7], fov: 50 }}>
+        <Canvas
+            camera={{ position: [5, 5, 7], fov: 50 }}
+            shadows
+            onPointerMissed={() =>
+                setSelectedShapeId(null)
+            }
+        >
           <Scene
               shapes={shapes}
               selectedShapeId={selectedShapeId}
