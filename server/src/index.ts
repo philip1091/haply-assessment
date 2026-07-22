@@ -155,7 +155,7 @@ io.on("connection", (socket) => {
                     : shape
             );
 
-            io.emit("shape-moved", {
+            socket.broadcast.emit("shape-moved", {
                 id,
                 position,
             } satisfies MoveShapePayload);

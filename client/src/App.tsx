@@ -66,11 +66,6 @@ function App() {
             shapeId: string,
             position: Vector3Tuple
         ) => {
-            // setShapes((currentShapes) =>
-            //     currentShapes.map((shape) =>
-            //         shape.id === shapeId ? {...shape, position,} : shape
-            //     )
-            // );
             socket.emit("move-shape", {
                 id: shapeId,
                 position,

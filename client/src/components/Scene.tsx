@@ -39,14 +39,8 @@ function Scene({
         if (!controls || !selectedShape) {
             return;
         }
-        function handleDraggingChanged(event: {
-            value: boolean;
-        }) {
-            // only savin the position when dragging finish.
-            if (event.value) {
-                return;
-            }
 
+        function sendCurrentPosition() {
             const object = controls.object;
 
             if (!object) {
@@ -61,19 +55,44 @@ function Scene({
 
             onMoveShape(selectedShape.id, position);
         }
+        function handleObjectChange() {
+            sendCurrentPosition();
+        }
+
+
+
+
+        function handleDraggingChanged(event: {
+            value: boolean;
+        }) {
+            // send one last update when dragging finish.
+            if (!event.value) {
+                sendCurrentPosition();
+            }
+        }
+
+        controls.addEventListener(
+            "objectChange",
+            handleObjectChange
+        );
 
         controls.addEventListener(
             "dragging-changed",
             handleDraggingChanged
         );
 
+
         return () => {
+            controls.removeEventListener(
+                "objectChange",
+                handleObjectChange
+            );
             controls.removeEventListener(
                 "dragging-changed",
                 handleDraggingChanged
             );
         };
-    }, [selectedShape, onMoveShape])
+    }, [selectedShape, onMoveShape]);
 
     return (
 
