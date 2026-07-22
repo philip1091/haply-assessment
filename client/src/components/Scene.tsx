@@ -9,11 +9,13 @@ import ShapeMesh from "./ShapeMesh";
 type SceneProps = {
     shapes: Shape[];
     selectedShapeId: string | null;
-    onSelectShape: (shapeId: string | null) => void;
+    onSelectShape: (shapeId: string ) => void;
+    onDeselectShape: () => void;
     onMoveShape: (
         shapeId: string,
         position: Vector3Tuple
     ) => void;
+    currentUserId: string | null;
 };
 
 function Scene({
@@ -21,6 +23,7 @@ function Scene({
    selectedShapeId,
    onSelectShape,
    onMoveShape,
+   currentUserId
     }:SceneProps) {
 
     const transformRef =
@@ -79,16 +82,27 @@ function Scene({
 
             <directionalLight position={[5, 8, 5]} intensity={2} castShadow />
 
-            {shapes.map((shape) =>
-                shape.id === selectedShapeId ? null : (
+            {shapes.map((shape) =>{
+
+                if(shape.id === selectedShapeId){
+                    return null;
+                }
+                const isLockedByAnotherUser =
+                    shape.ownerId !== null &&
+                    shape.ownerId !== currentUserId;
+
+                return (
                     <ShapeMesh
                         key={shape.id}
                         shape={shape}
                         isSelected={false}
+                        isLockedByAnotherUser={
+                            isLockedByAnotherUser
+                        }
                         onSelect={onSelectShape}
                     />
                 )
-            )}
+            })}
 
             {selectedShape && (
                 <TransformControls
@@ -100,6 +114,7 @@ function Scene({
                         shape={{...selectedShape, position: [0, 0, 0]}}
                         isSelected
                         onSelect={onSelectShape}
+                        isLockedByAnotherUser={false}
                     />
                 </TransformControls>
             )}
@@ -113,7 +128,10 @@ function Scene({
                 sectionThickness={1.2}
                 fadeDistance={25}
                 infiniteGrid
-                onClick={() => onSelectShape(null)}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onDeselectShape();
+                }}
             />
 
             <OrbitControls makeDefault />

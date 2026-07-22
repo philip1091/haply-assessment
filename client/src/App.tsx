@@ -3,7 +3,14 @@ import { Canvas } from "@react-three/fiber";
 import './App.css'
 import Scene from "./components/Scene.tsx";
 import Toolbar from "./components/Toolbar.tsx";
-import type { Shape, ShapeType, Vector3Tuple, MoveShapePayload } from "./types/shape";
+import type {
+    MoveShapePayload,
+    Shape,
+    ShapeLockChangedPayload,
+    ShapeLockPayload,
+    ShapeType,
+    Vector3Tuple,
+} from "./types/shape";
 import { getRandomColor } from "./utils/randomColors";
 import { socket } from "./socket";
 
@@ -11,8 +18,11 @@ function App() {
     const [shapes, setShapes] = useState<Shape[]>([]);
     const [selectedShapeId, setSelectedShapeId] =
         useState<string | null>(null);
+    const [currentUserId, setCurrentUserId] =
+        useState<string | null>(null);
 
     function addShape(type: ShapeType) {
+        console.log(getRandomColor())
         const newShape: Shape = {
             id: crypto.randomUUID(),
             type,
@@ -22,12 +32,34 @@ function App() {
                 Math.random() * 4 - 2,
             ],
             color: getRandomColor(),
+            ownerId: null,
         };
 
         // setShapes((currentShapes) => [...currentShapes, newShape]);
         socket.emit("create-shape", newShape);
-        setSelectedShapeId(newShape.id);
+        // setSelectedShapeId(newShape.id);
     }
+
+    const requestShapeLock = useCallback(
+        (shapeId: string) => {
+            socket.emit("request-lock", {
+                shapeId,
+            } satisfies ShapeLockPayload);
+        },
+        []
+    );
+
+    const deselectShape = useCallback(() => {
+        if (!selectedShapeId) {
+            return;
+        }
+
+        socket.emit("release-lock", {
+            shapeId: selectedShapeId,
+        } satisfies ShapeLockPayload);
+
+        setSelectedShapeId(null);
+    }, [selectedShapeId]);
 
     const moveShape = useCallback(
         (
@@ -48,6 +80,10 @@ function App() {
     );
 
     useEffect(() => {
+        function handleConnect() {
+            setCurrentUserId(socket.id ?? null);
+        }
+
         function handleInitialState(serverShapes: Shape[]) {
             setShapes(serverShapes);
         }
@@ -66,22 +102,52 @@ function App() {
             });
         }
 
-        function handleShapeMoved({id, position,}: MoveShapePayload) {
+        function handleShapeMoved({id, position}: MoveShapePayload) {
             setShapes((currentShapes) =>
                 currentShapes.map((shape) =>
                     shape.id === id ? {...shape, position} : shape
                 )
             );
         }
+        function handleLockChanged({shapeId, ownerId,}: ShapeLockChangedPayload) {
+            setShapes((currentShapes) =>
+                currentShapes.map((shape) =>
+                    shape.id === shapeId
+                        ? {
+                            ...shape,
+                            ownerId,
+                        }
+                        : shape
+                )
+            );
+        }
+        function handleLockAcquired({
+                                        shapeId,
+                                    }: ShapeLockPayload) {
+            setSelectedShapeId(shapeId);
+        }
+
+        function handleLockDenied() {
+            setSelectedShapeId(null);
+        }
+
+        socket.on("connect", handleConnect);
         socket.on("initial-state", handleInitialState);
         socket.on("shape-created", handleShapeCreated);
         socket.on("shape-moved", handleShapeMoved);
+        socket.on("lock-changed", handleLockChanged);
+        socket.on("lock-acquired", handleLockAcquired);
+        socket.on("lock-denied", handleLockDenied);
         socket.connect();
 
         return () => {
+            socket.off("connect", handleConnect);
             socket.off("initial-state", handleInitialState);
             socket.off("shape-created", handleShapeCreated);
             socket.off("shape-moved", handleShapeMoved);
+            socket.off("lock-changed", handleLockChanged);
+            socket.off("lock-acquired", handleLockAcquired);
+            socket.off("lock-denied", handleLockDenied);
             socket.disconnect();
         };
 
@@ -102,8 +168,10 @@ function App() {
           <Scene
               shapes={shapes}
               selectedShapeId={selectedShapeId}
-              onSelectShape={setSelectedShapeId}
+              onSelectShape={requestShapeLock}
+              onDeselectShape={deselectShape}
               onMoveShape={moveShape}
+              currentUserId={currentUserId}
           />
         </Canvas>
       </section>

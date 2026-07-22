@@ -7,9 +7,19 @@ export type Shape = {
     type: ShapeType;
     position: Vector3Tuple;
     color: string;
+    ownerId: string | null;
 };
 
 export type MoveShapePayload = {
     id: string;
     position: Vector3Tuple;
+};
+
+export type ShapeLockChangedPayload = {
+    shapeId: string;
+    ownerId: string | null;
+};
+
+export type ShapeLockPayload = {
+    shapeId: string;
 };

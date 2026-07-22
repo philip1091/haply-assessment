@@ -54,11 +54,86 @@ io.on("connection", (socket) => {
             return;
         }
 
-        shapes = [...shapes, shape];
+        const newShape: Shape = {
+            ...shape,
+            ownerId: null,
+        };
+
+        shapes = [...shapes, newShape];
 
         // broadcast to every connected client.
-        io.emit("shape-created", shape);
+        io.emit("shape-created", newShape);
     });
+
+    socket.on(
+        "request-lock",
+        ({ shapeId }: ShapeLockPayload) => {
+            const shape = shapes.find(
+                (currentShape) => currentShape.id === shapeId
+            );
+
+            if (!shape) {
+                return;
+            }
+
+            const lockIsAvailable =
+                shape.ownerId === null ||
+                shape.ownerId === socket.id;
+
+            if (!lockIsAvailable) {
+                socket.emit("lock-denied", {
+                    shapeId,
+                } satisfies ShapeLockPayload);
+
+                return;
+            }
+
+            shapes = shapes.map((currentShape) =>
+                currentShape.id === shapeId
+                    ? {
+                        ...currentShape,
+                        ownerId: socket.id,
+                    }
+                    : currentShape
+            );
+
+            io.emit("lock-changed", {
+                shapeId,
+                ownerId: socket.id,
+            } satisfies ShapeLockChangedPayload);
+
+            socket.emit("lock-acquired", {
+                shapeId,
+            } satisfies ShapeLockPayload);
+        }
+    );
+
+    socket.on(
+        "release-lock",
+        ({ shapeId }: ShapeLockPayload) => {
+            const shape = shapes.find(
+                (currentShape) => currentShape.id === shapeId
+            );
+
+            if (!shape || shape.ownerId !== socket.id) {
+                return;
+            }
+
+            shapes = shapes.map((currentShape) =>
+                currentShape.id === shapeId
+                    ? {
+                        ...currentShape,
+                        ownerId: null,
+                    }
+                    : currentShape
+            );
+
+            io.emit("lock-changed", {
+                shapeId,
+                ownerId: null,
+            } satisfies ShapeLockChangedPayload);
+        }
+    );
 
     socket.on(
         "move-shape",
@@ -89,6 +164,26 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log(`Client disconnected: ${socket.id}`);
+
+        const releasedShapeIds = shapes
+            .filter((shape) => shape.ownerId === socket.id)
+            .map((shape) => shape.id);
+
+        shapes = shapes.map((shape) =>
+            shape.ownerId === socket.id
+                ? {
+                    ...shape,
+                    ownerId: null,
+                }
+                : shape
+        );
+
+        releasedShapeIds.forEach((shapeId) => {
+            io.emit("lock-changed", {
+                shapeId,
+                ownerId: null,
+            } satisfies ShapeLockChangedPayload);
+        });
     });
 });
 
