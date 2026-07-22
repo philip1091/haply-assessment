@@ -10,6 +10,7 @@ import type {
     ShapeLockPayload,
     ShapeType,
     Vector3Tuple,
+    QuaternionTuple
 } from "./types/shape";
 import { getRandomColor } from "./utils/randomColors";
 import { socket } from "./socket";
@@ -33,11 +34,11 @@ function App() {
             ],
             color: getRandomColor(),
             ownerId: null,
+            rotation: [0, 0, 0, 1]
         };
 
-        // setShapes((currentShapes) => [...currentShapes, newShape]);
+        setShapes((currentShapes) => [...currentShapes, newShape]);
         socket.emit("create-shape", newShape);
-        // setSelectedShapeId(newShape.id);
     }
 
     const requestShapeLock = useCallback(
@@ -64,18 +65,20 @@ function App() {
     const moveShape = useCallback(
         (
             shapeId: string,
-            position: Vector3Tuple
+            position: Vector3Tuple,
+            rotation: QuaternionTuple
         ) => {
             setShapes((currentShapes) =>
                 currentShapes.map((shape) =>
                     shape.id === shapeId
-                        ? { ...shape, position }
+                        ? { ...shape, position, rotation }
                         : shape
                 )
             );
             socket.emit("move-shape", {
                 id: shapeId,
                 position,
+                rotation
             } satisfies MoveShapePayload);
         },
         []
@@ -104,10 +107,10 @@ function App() {
             });
         }
 
-        function handleShapeMoved({id, position}: MoveShapePayload) {
+        function handleShapeMoved({id, position, rotation}: MoveShapePayload) {
             setShapes((currentShapes) =>
                 currentShapes.map((shape) =>
-                    shape.id === id ? {...shape, position} : shape
+                    shape.id === id ? {...shape, position, rotation} : shape
                 )
             );
         }

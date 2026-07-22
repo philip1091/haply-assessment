@@ -38,6 +38,7 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: Shape
     return (
         <mesh
             position={shape.position}
+            quaternion={shape.rotation}
             onClick={handleClick}
             castShadow
             receiveShadow

@@ -1,9 +1,11 @@
 import {
-    type ElementRef, useEffect,
-    useRef
+    type ElementRef,
+    useEffect,
+    useRef,
+    useState
 } from "react";
 import { OrbitControls, Grid, TransformControls } from "@react-three/drei";
-import type { Shape, Vector3Tuple, MoveShapePayload } from "../types/shape";
+import type { Shape, Vector3Tuple, MoveShapePayload, QuaternionTuple } from "../types/shape";
 import ShapeMesh from "./ShapeMesh";
 import { socket } from "../socket";
 
@@ -14,7 +16,8 @@ type SceneProps = {
     onDeselectShape: () => void;
     onMoveShape: (
         shapeId: string,
-        position: Vector3Tuple
+        position: Vector3Tuple,
+        rotation: QuaternionTuple
     ) => void;
     currentUserId: string | null;
 };
@@ -30,15 +33,55 @@ function Scene({
     const transformRef =
         useRef<ElementRef<typeof TransformControls>>(null);
 
+    const [transformMode, setTransformMode] =
+        useState<"translate" | "rotate">("translate");
+
     const selectedShape = shapes.find(
         (shape) => shape.id === selectedShapeId
     );
+
+    useEffect(() => {
+        //key down event to choose between rotate and drag
+        function handleKeyDown (event: KeyboardEvent) {
+            if (event.key === "g" || event.key === "G") {
+                setTransformMode("translate");
+            } else if (event.key === "r" || event.key === "R") {
+                setTransformMode("rotate");
+            }
+        }
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     useEffect(() => {
         const controls = transformRef.current;
 
         if (!controls || !selectedShape) {
             return;
+        }
+
+        function readObjectTransform(): {
+            position: Vector3Tuple;
+            rotation: QuaternionTuple;
+        } | null {
+            const object = controls.object;
+            if (!object) {
+                return null;
+            }
+
+            return {
+                position: [
+                    object.position.x,
+                    object.position.y,
+                    object.position.z,
+                ],
+                rotation: [
+                    object.quaternion.x,
+                    object.quaternion.y,
+                    object.quaternion.z,
+                    object.quaternion.w,
+                ],
+            };
         }
 
         function handleDraggingChanged(event: { value: boolean }) {
@@ -48,29 +91,23 @@ function Scene({
                 return;
             }
 
-            const object = controls.object;
+            const transform = readObjectTransform();
 
-            if (!object) {
+            if (!transform) {
                 return;
             }
 
-
-            const position: Vector3Tuple = [
-                object.position.x,
-                object.position.y,
-                object.position.z,
-            ];
-
-            onMoveShape(selectedShape.id, position);
+            onMoveShape(selectedShape.id, transform.postion, transform.rotation);
         }
 
         function handleObjectChange() {
-            const object = controls.object;
-            if (!object) return;
+            const transform = readObjectTransform();
+            if (!transform) return;
 
             socket.emit("move-shape", {
                 id: selectedShape.id,
-                position: [object.position.x, object.position.y, object.position.z],
+                position: transform.position,
+                rotation: transform.rotation,
             } satisfies MoveShapePayload);
         }
 
@@ -124,11 +161,16 @@ function Scene({
             {selectedShape && (
                 <TransformControls
                     ref={transformRef}
-                    mode="translate"
+                    mode={transformMode}
                     position={selectedShape.position}
+                    quaternion={selectedShape.rotation}
                 >
                     <ShapeMesh
-                        shape={{...selectedShape, position: [0, 0, 0]}}
+                        shape={{
+                            ...selectedShape,
+                            position: [0, 0, 0],
+                            rotation: [0, 0, 0, 1],
+                        }}
                         isSelected
                         onSelect={onSelectShape}
                         isLockedByAnotherUser={false}
