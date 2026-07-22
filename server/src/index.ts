@@ -34,7 +34,8 @@ let shapes: Shape[] = [];
 
 app.get("/", (_request, response) => {
     response.json({
-        message: "Haply Shape Sandbox server is running"
+        message: "Haply Shape Sandbox server is running",
+        shapeCount: shapes.length,
     });
 });
 

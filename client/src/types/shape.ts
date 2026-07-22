@@ -8,3 +8,8 @@ export type Shape = {
     position: Vector3Tuple;
     color: string;
 };
+
+export type MoveShapePayload = {
+    id: string;
+    position: Vector3Tuple;
+};
