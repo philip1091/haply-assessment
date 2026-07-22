@@ -142,7 +142,7 @@ function Scene({
 
         function checkCollisions(draggedPosition: Vector3Tuple) {
 
-            const draggedRadius = getShapeRadius(selectedShape.type);
+            const draggedRadius = getShapeRadius(activeShape.type);
             const currentlyTouchingIds = new Set<string>();
 
             for (const otherShape of shapes) {
