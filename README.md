@@ -123,7 +123,8 @@ around from the start:
 I had assistance of an LLM (ChatGPT), during development and documentation.
 The full chat transcript is attached / linked here:
 **[add link or attached file]**.
-- https://chatgpt.com/share/6a60404a-e0f0-83ea-ade2-a0199ae0caf8
+
+- https://chatgpt.com/share/6a604d53-a258-83ea-a759-2f2b3370b149
 
 - https://r3f.docs.pmnd.rs/api/events
 
