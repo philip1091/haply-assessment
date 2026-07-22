@@ -42,6 +42,7 @@ function Scene({
         }
 
         function handleDraggingChanged(event: { value: boolean }) {
+            document.body.style.cursor = event.value ? "grabbing" : "auto";
 
             if (event.value) {
                 return;

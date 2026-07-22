@@ -1,3 +1,4 @@
+import {useState} from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { Shape } from "../types/shape";
 
@@ -9,6 +10,7 @@ type ShapeMeshProps = {
 };
 
 function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: ShapeMeshProps) {
+    const [isHovered, setIsHovered] = useState(false);
 
     function handleClick(event: ThreeEvent<MouseEvent>) {
         event.stopPropagation();
@@ -19,8 +21,29 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: Shape
         onSelect(shape.id);
     }
 
+    function handlePointerOver(event: ThreeEvent<PointerEvent>) {
+        event.stopPropagation();
+        if (isLockedByAnotherUser) {
+            return;
+        }
+        setIsHovered(true);
+        document.body.style.cursor = "grab";
+    }
+
+    function handlePointerOut() {
+        setIsHovered(false);
+        document.body.style.cursor = "auto";
+    }
+
     return (
-        <mesh position={shape.position} onClick={handleClick} castShadow receiveShadow>
+        <mesh
+            position={shape.position}
+            onClick={handleClick}
+            castShadow
+            receiveShadow
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+        >
             {shape.type === "cube" ? (
                 <boxGeometry args={[1, 1, 1]} />
             ) : (
@@ -34,7 +57,9 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: Shape
                         ? "#222222"
                         : "#000000"
                 }
-                emissiveIntensity={isSelected ? 0.6 : 0}
+                emissiveIntensity={
+                    isSelected ? 0.6 : isHovered ? 0.35 : 0
+                }
                 opacity={isLockedByAnotherUser ? 0.45 : 1}
                 transparent
 
