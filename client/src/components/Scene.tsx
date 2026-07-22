@@ -97,7 +97,7 @@ function Scene({
                 return;
             }
 
-            onMoveShape(selectedShape.id, transform.postion, transform.rotation);
+            onMoveShape(selectedShape.id, transform.position, transform.rotation);
         }
 
         function handleObjectChange() {

@@ -5,6 +5,8 @@ import {createServer} from "node:http";
 
 import type {
     MoveShapePayload,
+    ShapeLockChangedPayload,
+    ShapeLockPayload,
     Shape,
 } from "./types.js";
 
@@ -137,7 +139,7 @@ io.on("connection", (socket) => {
 
     socket.on(
         "move-shape",
-        ({ id, position }: MoveShapePayload) => {
+        ({ id, position, rotation }: MoveShapePayload) => {
             const shapeExists = shapes.some(
                 (shape) => shape.id === id
             );
@@ -151,6 +153,7 @@ io.on("connection", (socket) => {
                     ? {
                         ...shape,
                         position,
+                        rotation
                     }
                     : shape
             );
@@ -158,6 +161,7 @@ io.on("connection", (socket) => {
             socket.broadcast.emit("shape-moved", {
                 id,
                 position,
+                rotation
             } satisfies MoveShapePayload);
         }
     );
