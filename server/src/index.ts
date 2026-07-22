@@ -8,6 +8,7 @@ import type {
     ShapeLockChangedPayload,
     ShapeLockPayload,
     Shape,
+    ForceFeedbackPayload
 } from "./types.js";
 
 const PORT = 3001;
@@ -163,6 +164,17 @@ io.on("connection", (socket) => {
                 position,
                 rotation
             } satisfies MoveShapePayload);
+        }
+    );
+
+    socket.on("force-feedback",
+        (payload: ForceFeedbackPayload) => {
+            console.log(
+                `Force feedback: shape ${payload.shapeId} <-> ${payload.otherShapeId}`,
+                payload.force
+            );
+
+            io.emit("force-feedback", payload);
         }
     );
 

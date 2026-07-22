@@ -27,3 +27,9 @@ export type ShapeLockChangedPayload = {
 export type ShapeLockPayload = {
     shapeId: string;
 };
+
+export type ForceFeedbackPayload = {
+    shapeId: string;
+    otherShapeId: string;
+    force: [number, number, number];
+};

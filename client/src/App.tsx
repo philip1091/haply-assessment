@@ -10,7 +10,8 @@ import type {
     ShapeLockPayload,
     ShapeType,
     Vector3Tuple,
-    QuaternionTuple
+    QuaternionTuple,
+    ForceFeedbackPayload
 } from "./types/shape";
 import { getRandomColor } from "./utils/randomColors";
 import { socket } from "./socket";
@@ -21,6 +22,8 @@ function App() {
         useState<string | null>(null);
     const [currentUserId, setCurrentUserId] =
         useState<string | null>(null);
+    const [collidingShapeIds, setCollidingShapeIds] = // COLLISION: added
+        useState<Set<string>>(new Set());
 
     function addShape(type: ShapeType) {
         console.log(getRandomColor())
@@ -141,6 +144,31 @@ function App() {
             setSelectedShapeId(null);
         }
 
+        function handleForceFeedback({shapeId, otherShapeId, force}: ForceFeedbackPayload) {
+            setCollidingShapeIds((current) => {
+                const next = new Set(current);
+                next.add(shapeId);
+                next.add(otherShapeId);
+                return next;
+            });
+
+            window.setTimeout(() => {
+                setCollidingShapeIds((current) => {
+                    const next = new Set(current);
+                    next.delete(shapeId);
+                    next.delete(otherShapeId);
+                    return next;
+                });
+            }, 250);
+
+            if (typeof navigator.vibrate === "function") {
+                const magnitude = Math.sqrt(
+                    force[0] ** 2 + force[1] ** 2 + force[2] ** 2
+                );
+                navigator.vibrate(Math.min(Math.round(magnitude * 150), 200));
+            }
+        }
+
         socket.on("connect", handleConnect);
         socket.on("initial-state", handleInitialState);
         socket.on("shape-created", handleShapeCreated);
@@ -148,6 +176,7 @@ function App() {
         socket.on("lock-changed", handleLockChanged);
         socket.on("lock-acquired", handleLockAcquired);
         socket.on("lock-denied", handleLockDenied);
+        socket.on("force-feedback", handleForceFeedback);
         socket.connect();
 
         return () => {
@@ -158,6 +187,7 @@ function App() {
             socket.off("lock-changed", handleLockChanged);
             socket.off("lock-acquired", handleLockAcquired);
             socket.off("lock-denied", handleLockDenied);
+            socket.off("force-feedback", handleForceFeedback);
             socket.disconnect();
         };
 
@@ -179,6 +209,7 @@ function App() {
               onSelectShape={requestShapeLock}
               onDeselectShape={deselectShape}
               onMoveShape={moveShape}
+              collidingShapeIds={collidingShapeIds}
               currentUserId={currentUserId}
           />
         </Canvas>

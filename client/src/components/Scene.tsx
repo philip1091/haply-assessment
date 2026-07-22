@@ -4,10 +4,15 @@ import {
     useRef,
     useState
 } from "react";
-import { OrbitControls, Grid, TransformControls } from "@react-three/drei";
-import type { Shape, Vector3Tuple, MoveShapePayload, QuaternionTuple } from "../types/shape";
+import {
+    Grid,
+    OrbitControls,
+    TransformControls,
+} from "@react-three/drei";
+import type { Shape, Vector3Tuple, MoveShapePayload, QuaternionTuple, ForceFeedbackPayload } from "../types/shape";
 import ShapeMesh from "./ShapeMesh";
 import { socket } from "../socket";
+import { areShapesColliding, getShapeRadius } from "../utils/collision";
 
 type SceneProps = {
     shapes: Shape[];
@@ -20,21 +25,25 @@ type SceneProps = {
         rotation: QuaternionTuple
     ) => void;
     currentUserId: string | null;
+    collidingShapeIds: Set<string>;
 };
 
 function Scene({
-   shapes,
-   selectedShapeId,
-   onSelectShape,
-   onMoveShape,
-   currentUserId
-    }:SceneProps) {
+                   shapes,
+                   selectedShapeId,
+                   onSelectShape,
+                   onMoveShape,
+                   currentUserId,
+                   collidingShapeIds
+               }:SceneProps) {
 
     const transformRef =
         useRef<ElementRef<typeof TransformControls>>(null);
 
     const [transformMode, setTransformMode] =
         useState<"translate" | "rotate">("translate");
+
+    const activeCollisionsRef = useRef<Set<string>>(new Set());
 
     const selectedShape = shapes.find(
         (shape) => shape.id === selectedShapeId
@@ -60,6 +69,8 @@ function Scene({
             return;
         }
 
+        activeCollisionsRef.current = new Set();
+
         function readObjectTransform(): {
             position: Vector3Tuple;
             rotation: QuaternionTuple;
@@ -82,6 +93,59 @@ function Scene({
                     object.quaternion.w,
                 ],
             };
+        }
+
+        function checkCollisions(draggedPosition: Vector3Tuple) {
+            if (!selectedShape) return;
+
+            const draggedRadius = getShapeRadius(selectedShape.type);
+            const currentlyTouchingIds = new Set<string>();
+
+            for (const otherShape of shapes) {
+                if (otherShape.id === selectedShape.id) continue;
+
+                const isTouching = areShapesColliding(
+                    draggedPosition,
+                    selectedShape.type,
+                    otherShape.position,
+                    otherShape.type
+                );
+
+                if (!isTouching) continue;
+
+                currentlyTouchingIds.add(otherShape.id);
+
+                const contactJustStarted =
+                    !activeCollisionsRef.current.has(otherShape.id);
+
+                if (contactJustStarted) {
+                    const dx = draggedPosition[0] - otherShape.position[0];
+                    const dy = draggedPosition[1] - otherShape.position[1];
+                    const dz = draggedPosition[2] - otherShape.position[2];
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    const penetration = Math.max(
+                        draggedRadius + getShapeRadius(otherShape.type) - distance,
+                        0.01
+                    );
+
+                    const force: Vector3Tuple =
+                        distance > 0
+                            ? [
+                                (dx / distance) * penetration,
+                                (dy / distance) * penetration,
+                                (dz / distance) * penetration,
+                            ]
+                            : [penetration, 0, 0];
+
+                    socket.emit("force-feedback", {
+                        shapeId: selectedShape.id,
+                        otherShapeId: otherShape.id,
+                        force,
+                    } satisfies ForceFeedbackPayload);
+                }
+            }
+
+            activeCollisionsRef.current = currentlyTouchingIds;
         }
 
         function handleDraggingChanged(event: { value: boolean }) {
@@ -109,6 +173,7 @@ function Scene({
                 position: transform.position,
                 rotation: transform.rotation,
             } satisfies MoveShapePayload);
+            checkCollisions(transform.position);
         }
 
         controls.addEventListener("objectChange", handleObjectChange);
@@ -127,7 +192,7 @@ function Scene({
             );
             controls.removeEventListener("objectChange", handleObjectChange);
         };
-    }, [selectedShape, onMoveShape]);
+    }, [selectedShape, onMoveShape, shapes]);
 
     return (
 
@@ -154,6 +219,7 @@ function Scene({
                             isLockedByAnotherUser
                         }
                         onSelect={onSelectShape}
+                        isColliding={collidingShapeIds.has(shape.id)}
                     />
                 )
             })}
@@ -174,6 +240,7 @@ function Scene({
                         isSelected
                         onSelect={onSelectShape}
                         isLockedByAnotherUser={false}
+                        isColliding={collidingShapeIds.has(selectedShape.id)}
                     />
                 </TransformControls>
             )}

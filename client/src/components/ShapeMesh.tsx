@@ -7,9 +7,10 @@ type ShapeMeshProps = {
     isSelected: boolean;
     onSelect: (shapeId: string) => void;
     isLockedByAnotherUser: boolean;
+    isColliding: boolean;
 };
 
-function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: ShapeMeshProps) {
+function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser, isColliding }: ShapeMeshProps) {
     const [isHovered, setIsHovered] = useState(false);
 
     function handleClick(event: ThreeEvent<MouseEvent>) {
@@ -35,6 +36,22 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: Shape
         document.body.style.cursor = "auto";
     }
 
+    const emissiveColor = isColliding
+        ? "#ff3333"
+        : isSelected
+            ? "#222222"
+            : isHovered
+                ? "#111111"
+                : "#000000";
+
+    const emissiveIntensity = isColliding
+        ? 1
+        : isSelected
+            ? 0.6
+            : isHovered
+                ? 0.35
+                : 0;
+
     return (
         <mesh
             position={shape.position}
@@ -53,17 +70,10 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser }: Shape
 
             <meshStandardMaterial
                 color={shape.color}
-                emissive={
-                    isSelected
-                        ? "#222222"
-                        : "#000000"
-                }
-                emissiveIntensity={
-                    isSelected ? 0.6 : isHovered ? 0.35 : 0
-                }
+                emissive={emissiveColor}
+                emissiveIntensity={emissiveIntensity}
                 opacity={isLockedByAnotherUser ? 0.45 : 1}
                 transparent
-
             />
         </mesh>
     );

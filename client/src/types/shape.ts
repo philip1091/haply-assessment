@@ -26,3 +26,9 @@ export type ShapeLockChangedPayload = {
     shapeId: string;
     ownerId: string | null;
 };
+
+export type ForceFeedbackPayload = {
+    shapeId: string;
+    otherShapeId: string;
+    force: Vector3Tuple;
+};
