@@ -36,8 +36,10 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser, isColli
         document.body.style.cursor = "auto";
     }
 
+    const displayColor = isColliding ? "#ff0000" : shape.color;
+
     const emissiveColor = isColliding
-        ? "#ff3333"
+        ? "#ff0000"
         : isSelected
             ? "#222222"
             : isHovered
@@ -69,7 +71,7 @@ function ShapeMesh({ shape, isSelected, onSelect, isLockedByAnotherUser, isColli
             )}
 
             <meshStandardMaterial
-                color={shape.color}
+                color={displayColor}
                 emissive={emissiveColor}
                 emissiveIntensity={emissiveIntensity}
                 opacity={isLockedByAnotherUser ? 0.45 : 1}

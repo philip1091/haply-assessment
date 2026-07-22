@@ -2,7 +2,8 @@ import {
     type ElementRef,
     useEffect,
     useRef,
-    useState
+    useState,
+    useMemo
 } from "react";
 import {
     Grid,
@@ -48,6 +49,32 @@ function Scene({
     const selectedShape = shapes.find(
         (shape) => shape.id === selectedShapeId
     );
+
+    const selectedShapeMesh = useMemo(() => {
+        if (!selectedShape) {
+            return null;
+        }
+
+        return (
+            <ShapeMesh
+                shape={{
+                    ...selectedShape,
+                    position: [0, 0, 0],
+                    rotation: [0, 0, 0, 1],
+                }}
+                isSelected
+                isLockedByAnotherUser={false}
+                isColliding={false}
+                onSelect={onSelectShape}
+            />
+        );
+    }, [
+        selectedShape?.id,
+        selectedShape?.type,
+        selectedShape?.color,
+        onSelectShape,
+    ]);
+
 
     useEffect(() => {
         //key down event to choose between rotate and drag
@@ -197,9 +224,9 @@ function Scene({
     return (
 
         <>
-            <ambientLight intensity={1.2} />
+            <ambientLight intensity={0.9} />
 
-            <directionalLight position={[5, 8, 5]} intensity={2} castShadow />
+            <directionalLight position={[5, 8, 5]} intensity={4} castShadow />
 
             {shapes.map((shape) =>{
 
@@ -231,17 +258,7 @@ function Scene({
                     position={selectedShape.position}
                     quaternion={selectedShape.rotation}
                 >
-                    <ShapeMesh
-                        shape={{
-                            ...selectedShape,
-                            position: [0, 0, 0],
-                            rotation: [0, 0, 0, 1],
-                        }}
-                        isSelected
-                        onSelect={onSelectShape}
-                        isLockedByAnotherUser={false}
-                        isColliding={collidingShapeIds.has(selectedShape.id)}
-                    />
+                    {selectedShapeMesh}
                 </TransformControls>
             )}
 
@@ -250,8 +267,7 @@ function Scene({
                 position={[0, 0, 0]}
                 cellSize={1}
                 cellThickness={0.6}
-                sectionSize={5}
-                sectionThickness={1.2}
+                sectionSize={1}
                 fadeDistance={25}
                 infiniteGrid
                 onClick={(event) => {
