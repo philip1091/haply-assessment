@@ -34,6 +34,7 @@ function Scene({
                    selectedShapeId,
                    onSelectShape,
                    onMoveShape,
+                   onDeselectShape,
                    currentUserId,
                    collidingShapeIds
                }:SceneProps) {
@@ -90,11 +91,28 @@ function Scene({
     }, []);
 
     useEffect(() => {
-        const controls = transformRef.current;
+        const controls = transformRef.current as unknown as {
+            object: {
+                position: { x: number; y: number; z: number };
+                quaternion: { x: number; y: number; z: number; w: number };
+            } | null;
+            addEventListener: (
+                type: "objectChange" | "dragging-changed",
+                listener: (event: { value: boolean }) => void
+            ) => void;
+            removeEventListener: (
+                type: "objectChange" | "dragging-changed",
+                listener: (event: { value: boolean }) => void
+            ) => void;
+        } | null;
+
 
         if (!controls || !selectedShape) {
             return;
         }
+
+        const activeShape = selectedShape;
+        const activeControls = controls;
 
         activeCollisionsRef.current = new Set();
 
@@ -102,7 +120,7 @@ function Scene({
             position: Vector3Tuple;
             rotation: QuaternionTuple;
         } | null {
-            const object = controls.object;
+            const object = activeControls.object;
             if (!object) {
                 return null;
             }
@@ -123,17 +141,16 @@ function Scene({
         }
 
         function checkCollisions(draggedPosition: Vector3Tuple) {
-            if (!selectedShape) return;
 
             const draggedRadius = getShapeRadius(selectedShape.type);
             const currentlyTouchingIds = new Set<string>();
 
             for (const otherShape of shapes) {
-                if (otherShape.id === selectedShape.id) continue;
+                if (otherShape.id === activeShape.id) continue;
 
                 const isTouching = areShapesColliding(
                     draggedPosition,
-                    selectedShape.type,
+                    activeShape.type,
                     otherShape.position,
                     otherShape.type
                 );
@@ -165,7 +182,7 @@ function Scene({
                             : [penetration, 0, 0];
 
                     socket.emit("force-feedback", {
-                        shapeId: selectedShape.id,
+                        shapeId: activeShape.id,
                         otherShapeId: otherShape.id,
                         force,
                     } satisfies ForceFeedbackPayload);
@@ -188,7 +205,7 @@ function Scene({
                 return;
             }
 
-            onMoveShape(selectedShape.id, transform.position, transform.rotation);
+            onMoveShape(activeShape.id, transform.position, transform.rotation);
         }
 
         function handleObjectChange() {
@@ -196,16 +213,16 @@ function Scene({
             if (!transform) return;
 
             socket.emit("move-shape", {
-                id: selectedShape.id,
+                id: activeShape.id,
                 position: transform.position,
                 rotation: transform.rotation,
             } satisfies MoveShapePayload);
             checkCollisions(transform.position);
         }
 
-        controls.addEventListener("objectChange", handleObjectChange);
+        activeControls.addEventListener("objectChange", handleObjectChange);
 
-        controls.addEventListener(
+        activeControls.addEventListener(
             "dragging-changed",
             handleDraggingChanged
         );
@@ -213,11 +230,11 @@ function Scene({
 
         return () => {
 
-            controls.removeEventListener(
+            activeControls.removeEventListener(
                 "dragging-changed",
                 handleDraggingChanged
             );
-            controls.removeEventListener("objectChange", handleObjectChange);
+            activeControls.removeEventListener("objectChange", handleObjectChange);
         };
     }, [selectedShape, onMoveShape, shapes]);
 
@@ -251,7 +268,7 @@ function Scene({
                 )
             })}
 
-            {selectedShape && (
+            {selectedShape && selectedShapeMesh && (
                 <TransformControls
                     ref={transformRef}
                     mode={transformMode}
