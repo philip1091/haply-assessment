@@ -120,10 +120,15 @@ function App() {
                         : shape
                 )
             );
+            if (ownerId === null) {
+                setSelectedShapeId((currentSelectedId) =>
+                    currentSelectedId === shapeId
+                        ? null
+                        : currentSelectedId
+                );
+            }
         }
-        function handleLockAcquired({
-                                        shapeId,
-                                    }: ShapeLockPayload) {
+        function handleLockAcquired({shapeId}: ShapeLockPayload) {
             setSelectedShapeId(shapeId);
         }
 
@@ -161,9 +166,7 @@ function App() {
         <Canvas
             camera={{ position: [5, 5, 7], fov: 50 }}
             shadows
-            onPointerMissed={() =>
-                setSelectedShapeId(null)
-            }
+            onPointerMissed={deselectShape}
         >
           <Scene
               shapes={shapes}
