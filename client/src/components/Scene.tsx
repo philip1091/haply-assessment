@@ -3,8 +3,9 @@ import {
     useRef
 } from "react";
 import { OrbitControls, Grid, TransformControls } from "@react-three/drei";
-import type { Shape, Vector3Tuple } from "../types/shape";
+import type { Shape, Vector3Tuple, MoveShapePayload } from "../types/shape";
 import ShapeMesh from "./ShapeMesh";
+import { socket } from "../socket";
 
 type SceneProps = {
     shapes: Shape[];
@@ -40,12 +41,18 @@ function Scene({
             return;
         }
 
-        function sendCurrentPosition() {
+        function handleDraggingChanged(event: { value: boolean }) {
+
+            if (event.value) {
+                return;
+            }
+
             const object = controls.object;
 
             if (!object) {
                 return;
             }
+
 
             const position: Vector3Tuple = [
                 object.position.x,
@@ -55,26 +62,18 @@ function Scene({
 
             onMoveShape(selectedShape.id, position);
         }
+
         function handleObjectChange() {
-            sendCurrentPosition();
+            const object = controls.object;
+            if (!object) return;
+
+            socket.emit("move-shape", {
+                id: selectedShape.id,
+                position: [object.position.x, object.position.y, object.position.z],
+            } satisfies MoveShapePayload);
         }
 
-
-
-
-        function handleDraggingChanged(event: {
-            value: boolean;
-        }) {
-            // send one last update when dragging finish.
-            if (!event.value) {
-                sendCurrentPosition();
-            }
-        }
-
-        controls.addEventListener(
-            "objectChange",
-            handleObjectChange
-        );
+        controls.addEventListener("objectChange", handleObjectChange);
 
         controls.addEventListener(
             "dragging-changed",
@@ -83,14 +82,12 @@ function Scene({
 
 
         return () => {
-            controls.removeEventListener(
-                "objectChange",
-                handleObjectChange
-            );
+
             controls.removeEventListener(
                 "dragging-changed",
                 handleDraggingChanged
             );
+            controls.removeEventListener("objectChange", handleObjectChange);
         };
     }, [selectedShape, onMoveShape]);
 
